@@ -22,5 +22,5 @@ COPY --from=builder /opt/src/prompts   ./dist/prompts
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-EXPOSE 3000
+EXPOSE 8000
 CMD ["node","dist/server.js"]
