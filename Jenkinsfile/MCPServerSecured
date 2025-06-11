@@ -1,0 +1,201 @@
+#!/usr/bin/env groovy
+import hudson.model.*
+import hudson.EnvVars
+import groovy.json.JsonSlurperClassic
+import groovy.json.JsonBuilder
+import groovy.json.JsonOutput
+import java.net.URL
+
+pipeline
+{
+agent 
+{
+node 'master'
+}
+tools
+{
+nodejs 'Node-20.12.2'
+}
+stages
+{
+stage('Build')
+{
+steps
+{
+sh 'node -v'
+sh 'npm cache clean --force'
+sh 'npm ci'
+sh 'npm run build'
+sh 'node -v'
+}
+}
+stage('Creating and Pushing Docker Image to registry')
+{
+steps
+{
+script
+{
+def customImage = docker.build("library.peoplestrong.com/mcpserversecured-uat:${env.BUILD_NUMBER}")
+customImage.push("${env.BUILD_NUMBER}")
+customImage.push("latest")
+}
+}
+}
+stage('Deploying on UAT')
+{
+steps
+{
+sh 'ansible-playbook /opt/ansible/playbook/UAT/MCPServerSecured/MCPServerSecured.yaml'
+}
+}        
+}
+post
+{
+success
+{
+emailext attachLog: true,
+subject: '[Staging]  b-performance-goal # $BUILD_STATUS! - $BUILD_NUMBER',
+body: '''
+<STYLE>
+    BODY, TABLE, TD, TH, P 
+        {
+    font-family:Calibri,Helvetica,sans serif;
+    font-size:18px;
+    color:black;
+    }
+    h1 { color:black; }
+    h2 { color:black; }
+    h3 { color:black; }
+    TD.bg1 { color:white; background-color:#595959; font-size:120% }
+    TD.bg2 { color:dark grey; background-color:#4040FF; font-size:110% }
+    TD.bg3 { color:grey; background-color:#8080FF; }
+    TD.test_passed { color:#ccc; }
+    TD.test_failed { color:red; }
+    TD.console { font-family:Calibri, Lucida Console; }
+</STYLE>
+<BODY>
+    <TABLE cellspacing="10">
+        <TR>
+            <TD align="">
+            <IMG SRC="https://campaign.peoplestrong.com/alt_worklife.png"/>
+            </TD>
+            <TD valign="center"><B style="font-size: 200%"AltWorklife</B></TD>
+        </TR>
+		<TR>
+		
+		</TR>
+        <TR>
+            <TD><B>Build Status:</B></TD>
+            <TD>${BUILD_STATUS}</TD>
+        </TR>
+        <TR>
+            <TD><B>Build Number:</B></TD>
+            <TD>${BUILD_DISPLAY_NAME}</TD>
+        </TR>
+		<TR>
+            <TD><B>Deployed by:</B></TD>
+            <TD>${BUILD_CAUSE}</TD>
+        </TR>
+		<TR>
+            <TD><B>BUILD URL:</B></TD>
+            <TD><A href="${BUILD_URL}">${BUILD_URL}</A></TD>
+		</TR>
+    </TABLE>
+    <BR/>
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 0px; padding-bottom: 0px; padding-right: 0px;">
+<span style="text-align: left; color: #000000; font-family: Arial; font-size: 9pt; font-style: normal; font-weight: normal;"><B>Best Regards</B><br/><font size="1" color="#B9B9B9"></font>Cloud Ops Team<br>Ext (124) 4506291 <font size="1" color="#B9B9B9"></span></br>
+</td>
+</tr>
+<br/>
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 7px; padding-bottom: 4px; padding-right: 0px;">
+<a href="https://www.peoplestrong.com/"><img src="https://www.peoplestrong.com/wp-content/themes/peoplestrong/images/logo.png" nosend="1" border="0" width="148" height="26" alt="PeopleStrong HR Services" title="PeopleStrong HR Services"></a>
+</td>
+</tr>
+<br />
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 8px; padding-bottom: 0px; padding-right: 0px;">
+<span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;"><b>IMPORTANT NOTICE: </b> This e-mail message is intended to be received only by persons entitled to receive the confidential information it may contain.
+E-mail messages to clients of PeopleStrong may contain information that is confidential and legally privileged. Please do not read, copy, forward, or store this message unless you are an intended recipient of it.
+If you have received this message in error, please forward it to the sender and delete it completely from your computer system.</span> 
+</td>
+</tr>
+</BODY>''',
+to: 'kundan.singh@peoplestrong.com;monitoring@peoplestrong.com'
+}
+failure
+{
+emailext attachLog: true,
+subject: '[Staging]  b-performance-goal # $BUILD_STATUS! - $BUILD_NUMBER',
+body: '''
+<STYLE>
+    BODY, TABLE, TD, TH, P 
+        {
+    font-family:Calibri,Helvetica,sans serif;
+    font-size:18px;
+    color:black;
+    }
+    h1 { color:black; }
+    h2 { color:black; }
+    h3 { color:black; }
+    TD.bg1 { color:white; background-color:#595959; font-size:120% }
+    TD.bg2 { color:dark grey; background-color:#4040FF; font-size:110% }
+    TD.bg3 { color:grey; background-color:#8080FF; }
+    TD.test_passed { color:#ccc; }
+    TD.test_failed { color:red; }
+    TD.console { font-family:Calibri, Lucida Console; }
+</STYLE>
+<BODY>
+    <TABLE cellspacing="10">
+        <TR>
+            <TD align="">
+            <IMG SRC="https://campaign.peoplestrong.com/alt_worklife.png"/>
+            </TD>
+            <TD valign="center"><B style="font-size: 200%"AltWorklife</B></TD>
+        </TR>
+		<TR>
+		
+		</TR>
+        <TR>
+            <TD><B>Build Status:</B></TD>
+            <TD>${BUILD_STATUS}</TD>
+        </TR>
+        <TR>
+            <TD><B>Build Number:</B></TD>
+            <TD>${BUILD_DISPLAY_NAME}</TD>
+        </TR>
+		<TR>
+            <TD><B>Deployed by:</B></TD>
+            <TD>${BUILD_CAUSE}</TD>
+        </TR>
+		<TR>
+            <TD><B>BUILD URL</B></TD>
+            <TD><A href="${BUILD_URL}">${BUILD_URL}</A></TD>
+		</TR>
+    </TABLE>
+    <BR/>
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 0px; padding-bottom: 0px; padding-right: 0px;">
+<span style="text-align: left; color: #000000; font-family: Arial; font-size: 9pt; font-style: normal; font-weight: normal;"><B>Best Regards</B><br/><font size="1" color="#B9B9B9"></font>Cloud Ops Team<br>Ext (124) 4506291 <font size="1" color="#B9B9B9"></span></br>
+</td>
+</tr>
+<br/>
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 7px; padding-bottom: 4px; padding-right: 0px;">
+<a href="https://www.peoplestrong.com/"><img src="https://www.peoplestrong.com/wp-content/themes/peoplestrong/images/logo.png" nosend="1" border="0" width="148" height="26" alt="PeopleStrong HR Services" title="PeopleStrong HR Services"></a>
+</td>
+</tr>
+<br />
+<tr>
+<td valign="top" style="padding-left: 0px; padding-top: 8px; padding-bottom: 0px; padding-right: 0px;">
+<span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;"><b>IMPORTANT NOTICE: </b> This e-mail message is intended to be received only by persons entitled to receive the confidential information it may contain.
+E-mail messages to clients of PeopleStrong may contain information that is confidential and legally privileged. Please do not read, copy, forward, or store this message unless you are an intended recipient of it.
+If you have received this message in error, please forward it to the sender and delete it completely from your computer system.</span> 
+</td>
+</tr>
+</BODY>''',
+to: 'monitoring@peoplestrong.com'
+}
+}
+}
