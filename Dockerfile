@@ -1,5 +1,5 @@
 # ---------- runtime stage ----------
-FROM prod-registry.peoplestrong.com/nodejs-20:12.2
+FROM node:20.12.2-alpine
 WORKDIR /opt
 ENV NODE_ENV=production
 COPY dist /opt/dist
