@@ -119,7 +119,8 @@ const mcp = new McpServer({
   authProvider: auth,
   prompt: {
     system: systemPrompt
-  }
+  },
+  requestTimeoutMs: 120_000
 });
 
 // ----- JWT middleware -----
