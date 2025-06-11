@@ -9,6 +9,7 @@ export function fetchDomain(accessToken: string) {
     } catch (err: any) {
         throw new Error("Failed to decode tenant_domain from access token: " + err.message);
     }
+    tenantDomain = 'abgcareers.peoplestrong.com';
     return tenantDomain;
 }
 
